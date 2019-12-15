@@ -1,0 +1,6 @@
+UI_EN = {
+  UI_Text_BladeBroken = "Ugh, I broke it!"
+  UI_Text_BladeBlunted = "I think I made it worse."
+  UI_Text_BladeSharper = "It seems a little sharper..."
+  UI_Text_BladePerfect = "A master couldn't have done better!"
+}

@@ -1,0 +1,39 @@
+module s13SharpenBlades
+{
+	imports
+	{
+		Base,
+	}
+	item s13MineralOil
+	{
+		Icon 		= s13MineralOil,
+    Type = Drainable,
+		UseDelta 		= .125,
+		Weight 		= .4,
+		DisplayName 		= Mineral Oil,
+	}
+	item s13Oilstone
+	{
+		Weight 		= .2,
+    Type = Drainable,
+		UseDelta 		= .01,
+		Icon 		= s13Oilstone,
+		DisplayName 		= Oilstone,
+	}
+	item s13Waterstone
+	{
+		Weight 		= .2,
+    Type = Drainable,
+		UseDelta 		= .01,
+		Icon 		= s13Waterstone,
+		DisplayName 		= Waterstone,
+	}
+	item s13HoningSteel
+	{
+		Icon 		= s13HoningSteel,
+    Type = Drainable,
+		UseDelta 		= .001,
+		Weight 		= .2,
+		DisplayName 		= Honing Steel,
+	}
+}
