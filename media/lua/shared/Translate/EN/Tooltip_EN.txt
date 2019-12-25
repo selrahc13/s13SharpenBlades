@@ -1,0 +1,8 @@
+s13UI_EN = {
+  Tooltip_Whetstone_Oil_Empty = "Used to sharpen all kinds of blades. Must be prepared with mineral oil or honing oil.",
+  Tooltip_Whetstone_Water_Empty = "Used to sharpen all kinds of blades. Must be prepared by soaking in water.",
+  Tooltip_Whetstone_Oil = "Used to sharpen all kinds of blades. Ready for use.",
+  Tooltip_Whetstone_Water = "Used to sharpen all kinds of blades. Ready for use.",
+  Tooltip_HoningSteel = "Can help straighten the edge of fine-edged blades.",
+  Tooltip_MineralOil = "Used to lubricate whetstones made to be used with oil.",
+}

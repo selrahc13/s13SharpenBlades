@@ -4,36 +4,92 @@ module s13SharpenBlades
 	{
 		Base,
 	}
-	item s13MineralOil
+	item s13Mineral_Oil_Full
 	{
-		Icon 		= s13MineralOil,
+		Icon 		= s13MineralOil_Full,
     Type = Drainable,
 		UseDelta 		= .125,
-		Weight 		= .4,
+		Weight 		= .8,
 		DisplayName 		= Mineral Oil,
+    UseWhileEquipped	=	    false,
+    ReplaceOnDeplete = s13Mineral_Oil_Empty,
+    Tooltip = Tooltip_MineralOil,
 	}
-	item s13Oilstone
+	item s13Mineral_Oil_Water_Full
 	{
-		Weight 		= .2,
+		IsWaterSource	=	TRUE,
+		Weight	=	0.8,
+		CanStoreWater	=	TRUE,
+		Type	=	Drainable,
+		UseWhileEquipped	=	FALSE,
+		UseDelta	=	0.1,
+		ReplaceOnDeplete	=	s13MineralOil_Empty,
+		ReplaceOnUseOn	=	WaterSource-s13Mineral_Oil_Water_Full,
+		StaticModel = WhiskeyBottle,		
+    Icon 		= s13MineralOilWater_Full,
     Type = Drainable,
-		UseDelta 		= .01,
-		Icon 		= s13Oilstone,
-		DisplayName 		= Oilstone,
+		DisplayName 		= Water Bottle,
 	}
-	item s13Waterstone
+  item s13Mineral_Oil_Empty
+  {
+    Icon = s13MineralOil,
+    Type = Normal,
+    CanStoreWater = True,
+    Weight = .1,
+    DisplayName = Empty Mineral Oil Bottle,
+    ReplaceOnUseOn	=	WaterSource-s13Mineral_Oil_Water_Full,
+  }
+	item s13Whetstone_Oil_Full
 	{
-		Weight 		= .2,
+		Weight 		= 1,
     Type = Drainable,
-		UseDelta 		= .01,
-		Icon 		= s13Waterstone,
-		DisplayName 		= Waterstone,
+		UseDelta 		= .125,
+		Icon 		= s13Oilstone_Prepared,
+		DisplayName 		= Whetstone,
+    UseWhileEquipped	=	    false,
+    ReplaceOnDeplete = s13Whetstone_Oil_Empty,
+    cantBeConsolided = TRUE,
+    Tooltip = Tooltip_Whetstone_Oil,
 	}
-	item s13HoningSteel
+  item s13Whetstone_Oil_Empty
+  {
+    weight = .2,
+    Type = Normal,
+    Icon = s13Oilstone,
+    DisplayName = Whetstone,
+    ReplaceOnUseOn = s13MineralOil-s13Whetstone_Oil_Full,
+    Tooltip = Tooltip_Whetstone_Oil_Empty,
+  }
+	item s13Whetstone_Water_Full
+	{
+		Weight 		= 1,
+    Type = Drainable,
+		UseDelta 		= .1,
+		Icon 		= s13Waterstone_Prepared,
+		DisplayName 		= Whetstone,
+    UseWhileEquipped	=	    false,
+    ReplaceOnDeplete = s13Whetstone_Water_Empty,
+    cantBeConsolided = TRUE,
+    Tooltip = Tooltip_Whetstone_Water,
+	}
+  item s13Whetstone_Water_Empty
+  {
+    Weight = .2,
+    Type = Normal,
+    Icon = s13Waterstone,
+    DisplayName = Whetstone,
+    ReplaceOnUseOn = WaterSource-s13Whetstone_Water_Full,
+    Tooltip = Tooltip_Whetstone_Water_Empty,
+  }
+	item s13Honing_Steel
 	{
 		Icon 		= s13HoningSteel,
     Type = Drainable,
 		UseDelta 		= .001,
 		Weight 		= .2,
 		DisplayName 		= Honing Steel,
+    ReplaceOnDeplete = ScrapMetal
+    UseWhileEquipped	=	    false,
+    Tooltip = Tooltip_HoningSteel,
 	}
 }

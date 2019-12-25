@@ -1,179 +1,63 @@
+-----------------------------------------------------------------------
+-- s13SharpenBlades blade maintenance timed action
+-- by selrahc13
+-----------------------------------------------------------------------
+
 require "TimedActions/ISBaseTimedAction"
 require "luautils"
+require "s13utils"
 
 ISSharpenBladeAction = ISBaseTimedAction:derive("ISSharpenBladeAction");
 
-local function isWhetstoneLube(_type, _item)
-  --print("isWhetstoneLube" .. _type .. ": " .. _item:getType() .. " drainable: " .. tostring(instanceof(_item, "DrainableComboItem")) .. " watersource: " .. tostring(_item:isWaterSource()) .. " storewater: " .. tostring(_item:canStoreWater()))
-  --if _item:getType():contains("s13MineralOil") and instanceof(_item, "DrainableComboItem") then print("uses: " .. _item:getDrainableUsesInt() .. " usedDelta: " .. _item:getUsedDelta() .. " useDelta: " .. _item:getUseDelta()) end
-  if _type == "water" then
-    if _item:canStoreWater() and _item:isWaterSource() and instanceof(_item, "DrainableComboItem") then
-      return true
+function ISSharpenBladeAction:isValid()
+  --print("ISSharpenBladeAction:isValid()")
+  if self.character:isDriving() then return false end
+  self.totalOil, self.totalWater = s13utils.getWhetstoneFluidCount(self.character:getInventory())  
+  
+  --print("totalOil: " .. self.totalOil .. " totalWater: " .. self.totalWater)
+  
+  local fixerType = self.fixer:getType()
+  if fixerType:contains("Whetstone_") then
+    if fixerType:contains("_Oil_") then 
+      self.usesNeeded = self.oilNeeded
+    elseif fixerType:contains("_Water_") then
+      self.usesNeeded = self.waterNeeded
     end
-  else
-    if _item:getType():contains("s13MineralOil") or _item:getType():contains("HoningOil") and instanceof(_item, "DrainableComboItem") then
-      return true
-    end
+  elseif fixerType:contains("Honing_") then
+    return true
+  end
+
+  if self.usesNeeded <= self.fixer:getDrainableUsesInt() then
+    return true
   end
   
   return false
 end
 
-local function getConsumables(_inventory, _self)
-  local _item = nil
-  _self.totalOil = 0
-  _self.totalWater = 0
-  _self.consumablesOil = {}
-  _self.consumablesWater = {}
-  
-  for i = 0, _inventory:getItems():size() -1 do
-    local _item = _inventory:getItems():get(i);
-    if isWhetstoneLube("water", _item) then
-      table.insert(_self.consumablesWater, _item)
-      _self.totalWater = _self.totalWater + _item:getDrainableUsesInt()
-    elseif isWhetstoneLube("oil", _item) then
-      table.insert(_self.consumablesOil, _item)
-      _self.totalOil = _self.totalOil + _item:getDrainableUsesInt()
-    end
-  end
-end
-
-local function findFirstRepairItem(_tool, _inventory)
-  print("findFirstRepairItem")
-  local repairItem
-  
-  if _tool == "water" then
-    repairItem = _inventory:FindAndReturn("s13Waterstone")
-  elseif _tool == "oil" then
-    repairItem = _inventory:FindAndReturn("s13Oilstone")
-    if not repairItem then
-      repairItem = _inventory:FindAndReturn("Whetstone")
-    end
-  elseif _tool == "honing" then
-    repairItem = _inventory:FindAndReturn("HoningSteel")
-  end
-  return repairItem
-end
-
-local function getFluidNeeded(_tool, _item)
-  if _tool == "oil" then
-    if _item:getCategories():contains("SmallBlade") then 
-      return 2 
-    elseif _item:getCategories():contains("Axe") then
-      return 4
-    elseif _item:getCategories():contains("LongBlade") then
-      return 6
-    else
-      return 8
-    end
-  end
-  -- waterstone needs to be soaked in 10 units of water
-  return 10
-end
-
----
--- This function modifies the chance of sharpening the blade successfully.
--- The higher the chance value, the higher is the chance of success.
--- @param - The character trying to sharpen the blade.
---
-local function calculateChance(character)
-    local chance = 0
-    local maintenance = math.floor(character:getPerkLevel(Perks.Maintenance) * 10)
-    local panicMod = character:getStats():getPanic()
-    local stressMod = character:getStats():getStress()
-    local luckMod = 0
-    -- Calculate the panic and stress modifiers. Panic in PZ is stored as a float ranging
-    -- from 0 to 100.
-
-    if character:HasTrait('Lucky') then
-      luckMod = math.ceil(ZombRand(5, 25) / 2)
-    elseif character:HasTrait('Unlucky') then
-      luckMod = math.ceil(ZombRand(-10, -50) / 2)
-    end
-
-    chance = maintenance - panicMod - stressMod
-    
-    -- We use luckMod as the floor for our chance of success
-    --print("Chance: " .. chance)
-    if chance + luckMod >= 100 then 
-      chance = 100
-    elseif chance + luckMod <= 0 then
-      chance = 0
-    else
-      chance = chance + luckMod
-    end
-    
-    --print("Maintenance: " .. maintenance .. " Panic: " .. panicMod .. " Stress: " .. stressMod .. " Luck: " .. luckMod .. " Chance success: " .. chance)
-    return chance
-
-end
-
-
-function ISSharpenBladeAction:isValid()
-  print("ISSharpenBladeAction:isValid()")
-  if self.character:isDriving() then return false end
-  local inventory = self.character:getInventory()
-  local hasOilstoneItem = inventory:FindAndReturn("s13Oilstone")
-  local hasHoningItem = inventory:FindAndReturn("s13HoningSteel")
-  local hasWaterstoneItem = inventory:FindAndReturn("s13Waterstone")
-  local check = false
-  getConsumables(inventory, self)  
-  
---  for i = 0, inventory:getItems():size() -1 do
---    local zitem = inventory:getItems():get(i);
-    -- We need a water source
---    if isWhetstoneLube("water", zitem) then
---      totalWater = totalWater + zitem:getDrainableUsesInt()
---      print("Adding water... " .. totalWater)
---    elseif isWhetstoneLube("oil", zitem) then
---      totalOil = totalOil + zitem:getDrainableUsesInt()
---      print("Adding oil... " .. totalOil)
---    end
---  end
-    
-  print("totalOil: " .. self.totalOil .. " totalWater: " .. self.totalWater)
-
-  --if self.toolitem1 then print(self.toolitem1:getType()) end
-  --if self.toolitem2 then print(self.toolitem2:getType()) end
-  
-  if self.tool == "oil" then
-    print("check for oil tools")
-    check = hasOilstoneItem and self.totalOil >= getFluidNeeded(self.tool, self.item)
-    print(tostring(check))
-  elseif self.tool == "water" then
-    print("check for water tools")
-    check = hasWaterstoneItem and self.totalWater >= getFluidNeeded(self.tool, self.item)
-    print(tostring(check))
-  else
-    print("check for honing tools")
-    check = hasHoningItem
-    print(tostring(check))
-  end
-  return check
-end
-
 function ISSharpenBladeAction:update()
-  print("ISSharpenBladeAction:update()")
+  --print("ISSharpenBladeAction:update()")
 
-	self.item:setJobDelta(self:getJobDelta());
+	self.brokenObject:setJobDelta(self:getJobDelta());
+	self.fixer:setJobDelta(self:getJobDelta());
 
   self.character:setMetabolicTarget(Metabolics.UsingTools);
 end
 
 function ISSharpenBladeAction:start()
-  print("ISSharpenBladeAction:start()")
-  self.item:setJobDelta(0.0);  
+  --print("ISSharpenBladeAction:start()")
+  self.brokenObject:setJobDelta(0.0);
+  self.fixer:setJobDelta(0.0)
   if self.sound then self.sound:stop() end
   -- need to localize this
-	--self.item:setJobType(getText("IGUI_JobType_Repair"));
-  self.item:setJobType(self.soundName)
+	--self.brokenObject:setJobType(getText("IGUI_JobType_Repair"));
+  self.brokenObject:setJobType(getText(self.jobType))
   self:setActionAnim(CharacterActionAnims.Craft);  
   self.character:getEmitter():playSound(self.soundName);
 end
 
 function ISSharpenBladeAction:stop()
-  print("ISSharpenBladeAction:stop()")
-  self.item:setJobDelta(0.0);
+  --print("ISSharpenBladeAction:stop()")
+  self.brokenObject:setJobDelta(0.0);
 
   -- Re-equip the previous items
   luautils.equipItems(self.character, self.primItem, self.scndItem)
@@ -181,111 +65,150 @@ function ISSharpenBladeAction:stop()
 end
 
 function ISSharpenBladeAction:perform()
-  print("ISSharpenBladeAction:perform()")
-	local perklvl = self.character:getPerkLevel(Perks.Maintenance);
+  --print("ISSharpenBladeAction:perform()")
   local character = self.character;
-  local item = self.item;
-  local itemCondition = item:getCondition()
-  local itemConditionMax = item:getConditionMax()
+  local itemCondition = self.brokenObject:getCondition()
+  local itemConditionMax = self.brokenObject:getConditionMax()
   local itemConditionPercent = (itemCondition / itemConditionMax) * 100
-  local conditionMax = 1 -- maximum durability that can be restored
-  local sharpenItem = nil 
+  local conditionMax = 0 -- maximum durability that can be restored
   
-  --local useLeft = waterContainer:getUsedDelta() / waterContainer:getUseDelta();  --local prim = character:getPrimaryHandItem();
-  --local scnd = character:getSecondaryHandItem();
-  local chance = calculateChance(character);
-  print("Success chance: " .. chance .. "%")
+  -- calculate chance of success
+  local success = s13utils.calculateChance(character);
+  local rolled = ZombRand(50) + character:getPerkLevel(Perks.Maintenance) * 5
+  --print("--> Success chance: " .. success .. "%")
+  --print("--> rolledChance  : " .. rolled)
   
-	if self.item:getContainer() then
-    self.item:getContainer():setDrawDirty(true);
+	if self.brokenObject:getContainer() then
+    self.brokenObject:getContainer():setDrawDirty(true);
 	end    
 
   if self.craftSound and self.craftSound:isPlaying() then
       self.craftSound:stop();
   end
-  --print("s13SharpenBlades chance " .. chance)
+  
+  --print("--> Fixer: " .. self.fixer:getName())
+  conditionMax = s13utils.repairMax(self.character, self.brokenObject, self.fixer)
+  --print("--> max condition restored: "..conditionMax)
 
-  sharpenItem = findFirstRepairItem(self.tool, character:getInventory())
-  if sharpenItem then print(sharpenItem:getName()) end
-  if self.tool == "oil" or self.tool == "water" then
-    conditionMax = 2 + player:getPerkLevel(Perks.Maintenance)
-    conditionMax = ZombRand(2, conditionMax + 2)
-    -- cannot restore less than 2 durability with sharpening stones
-    if conditionMax > 0 and conditionMax < 2 then
-      conditionMax = 2;
-    end      
-    -- with luck and skill, can restore up to full durability
-    if conditionMax > itemConditionMax then
-      conditionMax = itemConditionMax
+  -- enable for testing --
+  --if true then return end
+  
+  local fixerUseDelta = self.fixer:getUseDelta()
+  self.fixer:setUseDelta(self.usesNeeded * fixerUseDelta)
+  self.fixer:Use()
+  self.fixer:setUseDelta(fixerUseDelta)
+      
+  if not s13utils.isWhetstone(self.fixer) and itemCondition == 1 then
+    -- honing steel
+    -- botching it carries a chance of self-inflicted injury
+    if rolled < success then
+      player:Say("This ".. self.brokenObject:getName() .." should hold for a while longer.")
+      self.brokenObject:setCondition(itemCondition + 1)
+      character:getStats():setStress(character:getStats():getStress() - 2)
+      self.addXP = self.addXP + 3
+    elseif rolled <= success + 35 then
+      player:Say("This ".. self.brokenObject:getName() .." isn't better but at least it's not worse...")
+      self.addXP = self.addXP + 1
+    else
+      player:Say("*sigh* I totally botched the ".. self.brokenObject:getName() ..".")
+      self.brokenObject:setCondition(itemCondition-1)
+      character:getStats():setStress(character:getStats():getStress() + 10)
+      s13utils.injurePlayer(self.character, self.injuryChance)
+    end
+  else
+    -- sharpening stones
+    if rolled == 0 then 
+      -- nat20, weapon gets a max condition increase in addition to full condition restoration
+      player:Say("Amazing! I could shave with this ".. self.brokenObject:getName() .."!")
+      character:getStats():setStress(character:getStats():getStress() - 50)
+      self.brokenObject:setConditionMax(itemConditionMax + 1)
+      self.brokenObject:setCondition(itemConditionMax + 1)
+      self.addXP = self.addXP + 7
+    elseif rolled == 99 then
+      -- Break the weapon, high probability of self-inflicted injury, makes player stressed
+      player:Say("Fuck, I broke the ".. self.brokenObject:getName() .."!")
+      self.brokenObject:setCondition(0)
+      s13utils.injurePlayer(self.character, self.injuryChance / 2)
+      character:getStats():setStress(character:getStats():getStress() + 50)
+    elseif rolled <= success + 15 then
+      -- Restore 2 condition at minimum
+      player:Say("This ".. self.brokenObject:getName() .. " is definitely sharper!")
+      local toRestore = ZombRand(2, conditionMax) + 1
+      if toRestore > itemConditionMax then toRestore = conditionMax end
+      character:getStats():setStress(character:getStats():getStress() - 15)
+      self.brokenObject:setCondition(toRestore)
+      self.addXP = self.addXP + 5
+    elseif rolled <= success + 40 then
+      -- Restore 1 condition at minimum
+      player:Say("This ".. self.brokenObject:getName() .." seems a little sharper now.")
+      local toRestore = ZombRand(1, conditionMax - 2) + 1
+      if toRestore > itemConditionMax then toRestore = conditionMax end
+      if toRestore < 1 then toRestore = 1 end
+      character:getStats():setStress(character:getStats():getStress() - 5)
+      self.brokenObject:setCondition(toRestore)
+      self.addXP = self.addXP + 3
+    elseif rolled <= success + 60 then 
+      -- Damage the weapon, chance of self-inflicted injury
+      player:Say("Damn it, I dulled the ".. self.brokenObject:getName())
+      self.brokenObject:setCondition(itemCondition-1)
+      self.addXP = self.addXP + 1
+      s13utils.injurePlayer(self.character, self.injuryChance)
+      character:getStats():setStress(character:getStats():getStress() + 10)
     end
   end
-  
-  -- Calculate the chance for successfully sharpening the blade
---  if ZombRand(chance) == 0 then
-    -- Break the blade
---    item:setCondition(tool:getCondition() - 1);
-    -- TODO choose appropriate sound for blunting the blade
-    --getSoundManager():PlayWorldSound("doorlocked", door:getSquare(), 0, 12, 1, true);
---  else
-    -- 
-    --getSoundManager():PlayWorldSound("unlockDoor", door:getSquare(), 0, 6, 1, true);
---  end
 
---  if ZombRand(chance) == 0 then
---    character:Say(getText("UI_Text_BladeBroken"));
-    --character:setSecondaryHandItem(nil); -- Remove Item from hand.
-    --scnd:getContainer():Remove(scnd); -- Remove Item from inventory.
---    getSoundManager():PlayWorldSound("PZ_MetalSnap", character:getSquare(), 0, 10, 1, true);
---    item:setCondition(0)
---  elseif ZombRand(100) <= 30 - (perklvl * 2) then
---    character:Say(getText("UI_Text_BladeBlunted"));
---    item:setCondition(-1)
-    --character:setSecondaryHandItem(nil);
-    --scnd:getContainer():Remove(scnd);
---  elseif (ZombRand(100) <= chance) then
-    -- Total success
---    character:getXp():AddXP(Perks.Maintenance, 2)
---  end
+  -- give earned XP
+  self.character:getXp():AddXP(Perks.Maintenance, self.addXP)
 
   -- remove Timed Action from stack
   -- needed to remove from queue / start next.
-  self.item:setJobDelta(0.0);
+  self.brokenObject:setJobDelta(0.0);
 
   -- Re-equip the previous items
   luautils.equipItems(self.character, self.primItem, self.scndItem)
   
 	ISBaseTimedAction.perform(self);
-  print("exit ISSharpenBladeAction:perform()") 
+  --print("exit ISSharpenBladeAction:perform()") 
 end
 
-function ISSharpenBladeAction:new(_character, _item, _time, _items, _tool, _toolitem1, _toolitem2)
-  print("enter ISSharpenBladeAction:new()")
+function ISSharpenBladeAction:new(_character, _brokenObject, _time, _fixer)
+  --print("enter ISSharpenBladeAction:new()")
 
 	local o = {}
 	setmetatable(o, self)
 	self.__index = self
-	o.character = _character;
-  o.item = _item;
-  o.items = _items;
-	o.stopOnWalk = true;
-	o.stopOnRun = true;
-	o.maxTime = _time;
-  o.caloriesModifier = 4;
-  o.tool = _tool;
-  o.toolitem1 = _toolitem1;
-  o.toolitem2 = _toolitem2;
-  o.consumablesOil = {}
-  o.consumablesWater = {}
-  o.totalOil = 0
-  o.totalWater = 0
-  o.primItem = nil
-  o.scndItem = nil
-  if _tool == "oil" or _tool == "water" then o.soundName = "Sharpening" else o.soundName = "Honing" end
-  if _character:isTimedActionInstant() then
-      o.maxTime = 1;
+	o.character = _character
+  o.brokenObject = _brokenObject
+	o.stopOnWalk = true
+	o.stopOnRun = true
+	o.maxTime = _time
+  o.caloriesModifier = 4
+  --o.fixer = s13utils.findFirstRepairItem(_fixer, _brokenObject, _character);
+  o.fixer = _fixer
+  o.totalOil, o.totalWater = s13utils.getWhetstoneFluidCount(_character:getInventory())
+  o.oilNeeded, o.waterNeeded = s13utils.getUsesNeeded(_brokenObject)
+  o.usesNeeded = 1
+  o.jobType = "UI_JobType_Sharpen"
+  o.addXP = 0
+  if _fixer:getType():contains("_Oil_") then
+    o.usesNeeded = o.oilNeeded
+  elseif _fixer:getType():contains("_Water_") then
+    o.usesNeeded = o.waterNeeded
   end
-  o.primItem, o.scndItem = luautils.equipItems(o.character, o.item, findFirstRepairItem(o.tool, o.character:getInventory()))
+  if _fixer:getType():contains("Whetstone_") then 
+    o.soundName = "Sharpening"
+    o.jobType = "UI_JobType_Sharpen"
+  else 
+    o.soundName = "Honing_" 
+    o.jobType = "UI_JobType_Hone"
+  end
+  if _character:isTimedActionInstant() then
+      o.maxTime = 1
+  end
+  o.primItem, o.scndItem = luautils.equipItems(_character, _brokenObject, o.fixer)
+  o.injuryChance = ZombRand(_character:getPerkLevel(Perks.Maintenance) + 1)
+  --print("--> Fixing ".. _brokenObject:getType() .. " with: ".. _fixer:getType())
   
-  print("exit ISSharpenBladeAction:new()")
+  --print("exit ISSharpenBladeAction:new()")
 	return o;
 end
