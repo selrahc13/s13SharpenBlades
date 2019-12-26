@@ -157,7 +157,7 @@ s13utils.isWhetstoneFluid = function(_type, _item)
   --if _item:getType():contains("s13Mineral_Oil") and instanceof(_item, "DrainableComboItem") then print("uses: " .. _item:getDrainableUsesInt() .. " usedDelta: " .. _item:getUsedDelta() .. " useDelta: " .. _item:getUseDelta()) end
   if _type == "water" then
     return predicateWaterSourceItem(_item)
-  elseif _type == "oil"
+  elseif _type == "oil" then
     return predicateWhetstoneOilItem(_item)
   end
   
